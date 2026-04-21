@@ -1,0 +1,14 @@
+# ISO files
+*.iso
+
+# Secrets (NEVER commit these)
+secrets/
+
+# Environment variables
+srcs/.env
+
+# Docker generated files
+srcs/requirements/**/tools/__pycache__/
+
+# OS
+.DS_Store
