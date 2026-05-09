@@ -138,6 +138,31 @@ A pasta `secrets/` nunca vai para o git.
 
 ---
 
+## Daemon
+
+Um daemon é um processo que roda em segundo plano, sem interação direta com o usuário e sem terminal de controle. O nome vem da mitologia grega — um espírito auxiliar que trabalha nos bastidores.
+
+No Linux, daemons geralmente iniciam no boot do sistema e ficam rodando indefinidamente aguardando eventos ou requisições. Por convenção, seus nomes terminam em `d`: `sshd` (SSH), `mysqld` (MariaDB), `nginx` (quando rodando como serviço), `dockerd` (Docker).
+
+**O Docker daemon (`dockerd`)** é o processo central que gerencia todos os objetos Docker — containers, imagens, volumes, redes. Quando você digita `docker ps` no terminal, o CLI envia uma requisição para o daemon via socket Unix (`/var/run/docker.sock`). O daemon é quem realmente faz o trabalho.
+
+```
+docker CLI  →  /var/run/docker.sock  →  dockerd  →  containers
+```
+
+**Por que isso importa para o Inception:**
+
+A política `restart: always` reinicia containers automaticamente quando o processo principal morre (crash). Mas há uma distinção importante:
+
+- `docker kill` / `docker stop` → parada intencional via API → o daemon marca o container como "parado pelo usuário" → **não reinicia automaticamente**
+- Processo morre por dentro (`kill -9 1` de dentro do container) → o daemon interpreta como crash → **reinicia automaticamente**
+
+Quando o **daemon reinicia** (ex: `sudo systemctl restart docker` ou reboot da VM):
+- `restart: always` → containers voltam automaticamente
+- `restart: unless-stopped` → containers que foram parados manualmente antes do reboot **não voltam**
+
+---
+
 ## PID 1
 
 O primeiro processo de qualquer sistema Linux. Dentro de um container, é o processo definido no `CMD`/`ENTRYPOINT`.
