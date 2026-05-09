@@ -3,6 +3,16 @@
 
 ---
 
+## Subject First
+
+**O subject (`en.subject.pdf`) é a fonte de verdade do projeto.**
+
+Toda implementação deve ser verificada contra o subject antes de ser feita.
+Tutoriais, projetos de referência e conselhos externos são úteis — mas o subject
+prevalece sempre. Uma solução que funciona mas viola o subject falha na defesa.
+
+---
+
 ## Container vs Máquina Virtual
 
 | | VM | Container |
@@ -76,7 +86,7 @@ Mecanismo para persistir dados fora do ciclo de vida do container. Sem volume, d
 | Named volume | `volumes: db_data:` no compose | **obrigatório no Inception** |
 | Bind mount | caminho absoluto do host | **proibido pelo subject** |
 
-Named volumes são gerenciados pelo Docker em `/var/lib/docker/volumes/`. No Inception, os dados devem ficar em `/home/rsaueia-/data` — configurado via driver-opts no compose.
+Named volumes são gerenciados pelo Docker. No Inception, os dados devem ficar em `/home/rsaueia-/data` — configurado via `driver_opts` no compose.
 
 ---
 
@@ -96,7 +106,7 @@ networks:
     driver: bridge
 ```
 
-**Host network** (proibida pelo subject): remove o isolamento de rede — container usa a interface do host diretamente.
+**Host network** (proibida pelo subject): remove o isolamento de rede.
 
 Regras do subject:
 - `network: host` → proibido
@@ -108,38 +118,32 @@ Regras do subject:
 ## Secrets vs Variáveis de Ambiente vs `.env`
 
 ### `.env`
-Arquivo no host, lido pelo Compose antes de subir os containers. Serve para parametrizar o `docker-compose.yml`. Nunca deve conter senhas — é substituição de texto, não mecanismo de segurança.
-
-```bash
-DOMAIN_NAME=rsaueia-.42.fr
-MYSQL_DATABASE=wordpress
-```
+Lido pelo Compose antes de subir os containers. Parametriza o `docker-compose.yml`. Nunca deve conter senhas. Não vai para o git.
 
 ### Variáveis de ambiente (`environment:`)
-Injetadas no container na inicialização. Visíveis em texto puro via `docker inspect`. Use para configurações não-sensíveis (hosts, portas, nomes).
+Injetadas no container na inicialização. Visíveis em `docker inspect`. Use para configurações não-sensíveis.
 
 ### Docker Secrets
-Arquivos do host montados pelo Docker dentro do container em `/run/secrets/<nome>`. Não aparecem em `docker inspect`. Forma correta de passar senhas.
+Arquivos do host montados pelo Docker em `/run/secrets/<nome>`. Não aparecem em `docker inspect`. Forma correta de passar senhas.
 
 ```
 secrets/db_password.txt → /run/secrets/db_password (dentro do container)
 ```
 
 ```bash
-# leitura no entrypoint script:
 DB_PASSWORD=$(cat /run/secrets/db_password)
 ```
 
-A pasta `secrets/` nunca vai para o git (`.gitignore`).
+A pasta `secrets/` nunca vai para o git.
 
 ---
 
 ## PID 1
 
-O primeiro processo de qualquer sistema Linux. Dentro de um container, é o processo definido no `CMD`/`ENTRYPOINT` do Dockerfile.
+O primeiro processo de qualquer sistema Linux. Dentro de um container, é o processo definido no `CMD`/`ENTRYPOINT`.
 
 **Responsabilidades do PID 1:**
-- Receber `SIGTERM` quando o container para (`docker stop`) e encerrar de forma limpa
+- Receber `SIGTERM` quando o container para e encerrar de forma limpa
 - Gerenciar processos filhos zumbis
 
 **Regra:** o serviço real (`mysqld`, `php-fpm`, `nginx`) deve ser o PID 1. Todo entrypoint script termina com `exec`:
@@ -148,10 +152,20 @@ O primeiro processo de qualquer sistema Linux. Dentro de um container, é o proc
 exec mysqld --user=mysql   # substitui o script pelo serviço — vira PID 1
 ```
 
-**Proibidos como CMD/ENTRYPOINT** (não são o serviço real, ignoram SIGTERM):
+**Proibidos como CMD/ENTRYPOINT:**
 - `tail -f /dev/null`
 - `sleep infinity`
 - `while true; do ...; done`
+
+---
+
+## PHP e WordPress
+
+**PHP** é uma linguagem de programação para web. O servidor executa o código PHP e devolve HTML ao navegador.
+
+**WordPress** é um CMS escrito em PHP. Cada requisição executa arquivos `.php` que buscam dados no MariaDB e montam o HTML.
+
+**php-fpm** (FastCGI Process Manager) é o interpretador PHP. NGINX não executa PHP — ele delega para o php-fpm via protocolo FastCGI na porta 9000.
 
 ---
 
@@ -177,6 +191,23 @@ Configuração obrigatória:
 - TLS v1.2 ou v1.3 apenas (sem HTTP)
 - Porta 443 é a única exposta ao host
 - Certificado self-signed para `rsaueia-.42.fr`
+
+---
+
+## TLS/SSL
+
+TLS cria um canal criptografado entre navegador e servidor. O "S" do HTTPS.
+
+**Certificado self-signed:** o próprio servidor assina o certificado — sem CA externa. O navegador mostra aviso de segurança mas a criptografia funciona. É o que o subject permite.
+
+**TLSv1.2 vs TLSv1.3:** versões do protocolo. O subject exige que apenas essas duas sejam aceitas — versões anteriores têm vulnerabilidades conhecidas.
+
+```bash
+# Gera certificado self-signed válido por 180 dias
+openssl req -x509 -nodes -days 180 -newkey rsa:2048 \
+  -keyout selfsigned.key -out selfsigned.crt \
+  -subj "/CN=rsaueia-.42.fr"
+```
 
 ---
 

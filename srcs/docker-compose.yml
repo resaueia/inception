@@ -14,7 +14,7 @@ services:
       - wp_data:/var/www/html
     networks:
       - inception
-    restart: unless-stopped
+    restart: always
 
   wordpress:
     build: requirements/wordpress
@@ -30,7 +30,7 @@ services:
       - db_password
       - credentials
       - wp_user_password
-    restart: unless-stopped
+    restart: always
 
   mariadb:
     build: requirements/mariadb
@@ -43,7 +43,7 @@ services:
     secrets:
       - db_password
       - db_root_password
-    restart: unless-stopped
+    restart: always
 
 volumes:
   wp_data:

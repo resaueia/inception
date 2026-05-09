@@ -4,116 +4,112 @@
 
 ---
 
-## What we have done so far
+## Subject First
 
-### Environment setup
-- Installed VirtualBox 7.1 (from Oracle's official repository — Ubuntu's default version 6.1 is incompatible with kernel 6.8+)
-- Created a Debian 13 VM with: 4096MB RAM, 2 CPUs, 30GB disk, NAT network
-- VM user: `rsaueia-` (matches the required `/home/rsaueia-/data` path from the subject)
-- Configured SSH port forwarding (host port 2222 → VM port 22) for comfortable terminal access
-- Installed Docker 29.4.1 and Docker Compose v5.1.3 inside the VM
-- Verified Docker works correctly (`docker run hello-world`)
+**The subject (`en.subject.pdf`) is the single source of truth.**
 
-### Repository setup
-- Created `.gitignore` protecting secrets and `.env` from being committed
-- Created `docs/action-plan.md` with all project phases and critical rules checklist
-- Created this progress report
+Before implementing anything new, the subject must be consulted. It defines every
+requirement, restriction, and constraint. Deviating from it — even with a working
+result — means failing the defense.
 
-### Concepts covered
-- What a Virtual Machine is and why the project requires one
-- What a kernel is and why containers share it
-- What Docker is and the problem it solves
-- Docker image vs Docker container distinction
-- What a Dockerfile is and how it works
-- What Docker Compose is and why we need it
-- Docker volumes: named volumes vs bind mounts, and why the subject forbids bind mounts
-- (pending) Docker networks
-- (pending) Secrets vs environment variables
-- (pending) PID 1 and proper process management in containers
+- Before writing a new Dockerfile → re-read the relevant subject section
+- Before adding a configuration option → verify it is not forbidden
+- Before every commit → check the critical rules in `action-plan.md`
+- When in doubt → the subject wins over any tutorial, reference project, or advice
 
 ---
 
-## Current state
+## Current State (2026-05-09)
 
-We are in **Phase 0 (Foundation & Concepts)** — finishing the conceptual groundwork before writing any code.
-
-The VM is running and Docker is operational. The next step is to finish the remaining concepts (networks, secrets, PID 1) and then move into Phase 1 (project skeleton).
+**Phase 5 in progress** — three containers running, full stack tested end-to-end.
 
 ---
 
-## What comes next
+## What Has Been Done
 
-### Phase 0 — remaining concepts
-- Docker networks (bridge vs host, why host is forbidden by the subject)
-- Docker secrets vs environment variables vs `.env` files
-- PID 1 and why `tail -f`, `sleep infinity`, `while true` are forbidden
+### Phase 0 — Concepts (complete)
+- Container vs VM, Docker, images, Dockerfiles, Docker Compose
+- Volumes (named vs bind mounts), networks (bridge vs host)
+- Docker secrets vs environment variables vs `.env`
+- PID 1 and proper process management in containers
+- NGINX as reverse proxy, TLS/SSL, php-fpm, WordPress, PHP
 
-### Phase 1 — Project skeleton
-Create the full directory structure, `.env`, `secrets/`, stub `Makefile` and stub `docker-compose.yml`.
+### Phase 1 — Project Skeleton (complete)
+- Full directory structure: `srcs/`, `secrets/`, `requirements/`
+- Root `Makefile` with `all`, `up`, `down`, `clean`, `fclean`, `re`
+- `srcs/.env` with all environment variables
+- `secrets/` files: `db_password.txt`, `db_root_password.txt`, `credentials.txt`, `wp_user_password.txt`
+- `.gitignore` protecting secrets and `.env`
+- `srcs/docker-compose.yml` with three services, named volumes, custom bridge network
 
-```
-.
-├── Makefile
-├── secrets/
-│   ├── credentials.txt
-│   ├── db_password.txt
-│   └── db_root_password.txt
-└── srcs/
-    ├── docker-compose.yml
-    ├── .env
-    └── requirements/
-        ├── mariadb/
-        ├── nginx/
-        └── wordpress/
-```
+### Phase 2 — MariaDB Container (complete)
+- `Dockerfile`: Debian bookworm, mariadb-server, socket directory creation
+- `conf/50-server.cnf`: bind-address 0.0.0.0, skip-name-resolve, utf8mb4
+- `tools/entrypoint.sh`: marker-file initialization, passwords via secrets, MariaDB as PID 1
+- Tested: `wordpress` database and `wp_user` created and verified
 
-### Phase 2 — MariaDB container
-First service to build. Dockerfile + entrypoint script that initializes the database, creates users, and starts MariaDB correctly as PID 1.
+### Phase 3 — WordPress + php-fpm Container (complete)
+- `Dockerfile`: Debian bookworm, php8.2-fpm + extensions, WP-CLI
+- `conf/www.conf`: php-fpm pool on port 9000, dynamic process management
+- `tools/entrypoint.sh`: waits for MariaDB, downloads WordPress, configures wp-config.php, installs WordPress, creates two users via WP-CLI
+- Tested: WordPress installed successfully, both users created
 
-### Phase 3 — WordPress + php-fpm container
-Second service. Connects to MariaDB. Uses WP-CLI to automate WordPress installation and user creation.
+### Phase 4 — NGINX Container (complete)
+- `Dockerfile`: Debian bookworm, nginx, openssl; self-signed TLS cert generated at build time
+- `conf/nginx.conf`: port 443 only, TLSv1.2/TLSv1.3, FastCGI proxy to wordpress:9000
+- `tools/entrypoint.sh`: minimal — ensures runtime dir exists, exec nginx
+- Tested: `https://rsaueia-.42.fr` loads WordPress with valid TLS connection
 
-### Phase 4 — NGINX container
-Third service. TLS only (v1.2/v1.3), port 443, reverse proxy to WordPress on port 9000. Self-signed certificate for `rsaueia-.42.fr`.
+### Key issues solved during development
+- MariaDB `MYSQL_HOST` env var was intercepted by the MariaDB client → fixed with `unset MYSQL_HOST` in entrypoint
+- MariaDB init block was being skipped after partial failures → fixed with marker file `.inception_initialized`
+- TCP vs socket connection issues → fixed with `--protocol=SOCKET` and `skip-name-resolve`
+- VirtualBox NAT doesn't forward port 443 without root → tested via port 8443 locally; at 42 this won't be needed
 
-### Phase 5 — Integration & full stack test
-All three services running together, volumes persisting data, crash recovery working, domain resolving correctly.
+---
+
+## What Comes Next
+
+### Phase 5 — Integration & Full Stack Test (in progress)
+- Configure `/etc/hosts` on the VM
+- Test `make` from the root directory
+- Test crash recovery (kill a container, verify it restarts)
+- Final verification of all critical rules
 
 ### Phase 6 — Finalization
-Complete Makefile, write README.md, USER_DOC.md and DEV_DOC.md as required by the subject.
+- Update `Makefile` to match reference (add `logs`, `status`, `start`, `stop` targets)
+- Write `README.md`, `USER_DOC.md`, `DEV_DOC.md`
+- Final security and structure audit
 
 ---
 
-## The subject is the single source of truth
+## Environment
 
-**Before implementing anything new, the subject must be consulted.**
-
-The subject (`en.subject.pdf`) defines every requirement, restriction, and constraint of this project. It is not a suggestion — it is the evaluation criteria. Deviating from it, even with a working result, means failing the defense.
-
-This means:
-- Before writing a new Dockerfile, re-read the relevant section of the subject
-- Before adding a new configuration option, verify it is not forbidden
-- Before committing anything, check the security rules
-- When in doubt, the subject wins over any external tutorial or advice
-
-The subject is located at: `en.subject.pdf` in the repository root.
+| Component | Details |
+|---|---|
+| Host OS | Ubuntu (kernel 6.8) |
+| VM | Debian 13, 4096MB RAM, 2 CPUs, 30GB disk |
+| VM user | `rsaueia-` |
+| VirtualBox | 7.1 (Oracle repository) |
+| Docker | 29.4.1 |
+| Docker Compose | v5.1.3 |
+| SSH access | host port 2222 → VM port 22 |
+| HTTPS access (local) | host port 8443 → VM port 443 (VirtualBox NAT) |
 
 ---
 
-## Critical rules (never violate these)
-
-Violations of the rules below result in **automatic project failure**, regardless of whether the rest works correctly.
+## Critical Rules (never violate — automatic failure)
 
 | Rule | Description |
 |------|-------------|
-| No passwords in Dockerfiles | Use environment variables and secrets instead |
-| No `latest` tag | Use `debian:bookworm` for containers — never `debian:latest` |
-| Secrets never in git | `.gitignore` already configured — credentials in git = instant failure |
-| Named volumes only | Bind mounts forbidden for WordPress and DB data |
-| NGINX is the sole entry point | Port 443 only, TLSv1.2 or TLSv1.3 — no other ports exposed externally |
-| No forbidden network options | `network: host`, `--link`, `links:` are all explicitly forbidden |
-| No infinite loop entrypoints | `tail -f`, `sleep infinity`, `while true` as CMD/ENTRYPOINT are forbidden |
-| Admin username | Must not contain "admin", "Admin", "administrator" or "Administrator" |
-| Data path on VM | Volumes must store data at `/home/rsaueia-/data` |
-| One service per container | Do not run multiple services inside a single container |
-| Build your own images | Pulling pre-built images (except Alpine/Debian base) is forbidden |
+| No passwords in Dockerfiles | Use secrets only |
+| No `:latest` tag | Use `debian:bookworm` |
+| Secrets never in git | `.gitignore` configured |
+| Named volumes only | Bind mounts forbidden for data |
+| NGINX sole entry point | Port 443, TLSv1.2/1.3 only |
+| No forbidden network options | `network: host`, `--link`, `links:` all forbidden |
+| No infinite loop entrypoints | Use `exec` at end of entrypoint |
+| Admin username | Must not contain "admin" or "administrator" |
+| Data path on VM | `/home/rsaueia-/data` |
+| One service per container | Never run multiple services in one container |
+| Build your own images | Only Alpine/Debian as external base |
