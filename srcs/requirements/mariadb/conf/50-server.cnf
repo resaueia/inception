@@ -1,0 +1,11 @@
+[mysqld]
+# Accept connections from any IP (other containers connect via Docker network)
+bind-address    = 0.0.0.0
+port            = 3306
+
+# Skip reverse DNS lookups for connecting clients — prevents hostname
+# resolution errors when containers connect by container ID
+skip-name-resolve
+
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci

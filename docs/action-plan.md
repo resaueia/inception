@@ -12,16 +12,16 @@
 
 ## Phase 0 — Foundation & Concepts
 
-- [ ] **0.1** Understand what a container is vs a Virtual Machine (analogy + diagram)
-- [ ] **0.2** Understand what Docker is and why it exists
-- [ ] **0.3** Understand what a Docker image vs a Docker container is
+- [x] **0.1** Understand what a container is vs a Virtual Machine (analogy + diagram)
+- [x] **0.2** Understand what Docker is and why it exists
+- [x] **0.3** Understand what a Docker image vs a Docker container is
 - [ ] **0.4** Understand what a Dockerfile is and how it works
 - [ ] **0.5** Understand what Docker Compose is and why we need it
 - [ ] **0.6** Understand Docker volumes (named vs bind mounts)
 - [ ] **0.7** Understand Docker networks (bridge vs host)
 - [ ] **0.8** Understand Docker secrets vs environment variables vs .env files
 - [ ] **0.9** Understand PID 1 and why it matters for containers
-- [ ] **0.10** Install Docker and Docker Compose on the VM (verify installation)
+- [x] **0.10** Install Docker and Docker Compose on the VM (verify installation)
 
 ---
 
