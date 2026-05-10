@@ -5,6 +5,7 @@ services:
       context: requirements/nginx
       args:
         DOMAIN_NAME: ${DOMAIN_NAME}
+    image: nginx
     container_name: nginx
     depends_on:
       - wordpress
@@ -18,6 +19,7 @@ services:
 
   wordpress:
     build: requirements/wordpress
+    image: wordpress
     container_name: wordpress
     depends_on:
       - mariadb
@@ -34,6 +36,7 @@ services:
 
   mariadb:
     build: requirements/mariadb
+    image: mariadb
     container_name: mariadb
     volumes:
       - db_data:/var/lib/mysql

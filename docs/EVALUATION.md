@@ -212,14 +212,55 @@ communication uses Docker's internal DNS (service names as hostnames).
 
 ---
 
+## Test 9 — Login no MariaDB e banco não vazio
+
+O avaliador pede para você demonstrar como acessar o banco e mostrar que ele tem dados.
+
+```bash
+docker exec -it mariadb mariadb -u wp_user -pSUA_SENHA wordpress
+```
+
+Dentro do cliente MariaDB:
+```sql
+SHOW TABLES;
+SELECT COUNT(*) FROM wp_posts;
+EXIT;
+```
+
+Esperado: tabelas do WordPress listadas (`wp_posts`, `wp_users`, etc.) e pelo menos 1 registro.
+
+Como root (se necessário):
+```bash
+docker exec -it mariadb mariadb -u root -pSUA_SENHA_ROOT
+```
+
+---
+
+## Test 10 — Persistência após reboot da VM
+
+O avaliador vai reiniciar a VM e verificar que tudo volta com os dados preservados.
+
+1. Antes do reboot: faça uma mudança visível no WordPress (edite uma página, adicione um post)
+2. Reiniciar: `sudo reboot`
+3. Após o boot: containers com `restart: always` sobem automaticamente com o daemon Docker
+4. Confirmar: `docker ps` mostra os 3 containers rodando
+5. Confirmar: o site abre com a mudança feita antes do reboot
+
+Se os containers não subirem automaticamente após o reboot:
+```bash
+cd ~/inception && make
+```
+
+---
+
 ## Quick pre-evaluation checklist
 
 ```bash
 # All three containers running
 docker ps
 
-# No latest tags in images
-docker inspect srcs-mariadb srcs-wordpress srcs-nginx --format '{{.Config.Image}}'
+# Image names match service names (nginx, wordpress, mariadb — no srcs- prefix)
+docker image ls | grep -E "nginx|wordpress|mariadb"
 
 # Restart policy on all containers
 docker inspect mariadb wordpress nginx --format '{{.Name}}: {{.HostConfig.RestartPolicy.Name}}'
