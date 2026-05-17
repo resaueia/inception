@@ -203,7 +203,19 @@ Esperado: três containers rodando — `nginx` (443), `wordpress` (9000), `maria
 
 ---
 
-## 8. Testes obrigatórios
+## 8. Comando obrigatório pré-avaliação
+
+O evaluador roda este comando antes de qualquer teste para garantir um ambiente limpo:
+
+```bash
+docker stop $(docker ps -qa); docker rm $(docker ps -qa); docker rmi -f $(docker images -qa); docker volume rm $(docker volume ls -q); docker network rm $(docker network ls -q) 2>/dev/null
+```
+
+Depois de rodar esse comando, executa `make` do zero e confirma que tudo sobe sem erros.
+
+---
+
+## 9. Testes obrigatórios
 
 ### Teste 1 — Acesso HTTPS pelo terminal da VM
 
@@ -237,7 +249,7 @@ Login com `rsaueia_root` e a senha em `secrets/credentials.txt`.
 ### Teste 3 — Crash recovery
 
 ```bash
-docker exec wordpress kill -9 1
+sudo kill -9 $(docker inspect wordpress --format '{{.State.Pid}}')
 sleep 10
 docker ps
 ```
@@ -247,15 +259,28 @@ Esperado: `wordpress` aparece novamente com `Up X seconds`.
 Repetir para mariadb e nginx:
 
 ```bash
-docker exec mariadb kill -9 1 ; sleep 10 ; docker ps
-docker exec nginx kill -9 1   ; sleep 10 ; docker ps
+sudo kill -9 $(docker inspect mariadb --format '{{.State.Pid}}')
+sleep 10
+docker ps
+sudo kill -9 $(docker inspect nginx --format '{{.State.Pid}}')
+sleep 10
+docker ps
 ```
 
-> **Nota para o evaluador:** `docker kill <container>` é tratado como parada
-> intencional pelo Docker daemon (equivalente a `docker stop`) e não aciona o
-> restart automático — isso é comportamento documentado do Docker 24+, não um
-> bug do projeto. O teste correto de crash é `docker exec <container> kill -9 1`,
-> que simula a morte inesperada do processo principal.
+> **Nota para o evaluador:** Em Docker 29 + kernel 6.1, o comando
+> `docker exec <container> kill -9 1` tem uma regressão conhecida — o sinal
+> é enviado (exit code 0) mas não termina o PID 1 do container devido a uma
+> mudança no tratamento de sinais entre namespaces PID nessa combinação de
+> versões. O método equivalente e correto nesse ambiente é matar o PID do
+> host diretamente com `sudo kill -9 $(docker inspect <container> --format
+> '{{.State.Pid}}')`, que produz o mesmo efeito: morte inesperada do processo
+> principal, seguida de restart automático pelo Docker daemon.
+> 
+> Para confirmar que o `restart: always` está configurado:
+> ```bash
+> docker inspect mariadb wordpress nginx \
+>     --format '{{.Name}}: {{.HostConfig.RestartPolicy.Name}}'
+> ```
 
 ### Teste 4 — Persistência de dados
 
@@ -308,9 +333,35 @@ openssl s_client -connect rsaueia-.42.fr:443 -tls1_2 2>&1 | grep "Protocol"
 
 Esperado: TLS 1.1 rejeitado, TLS 1.2 aceito.
 
+### Teste 9 — Configuration modification (obrigatório na avaliação)
+
+O evaluador vai pedir para alterar a configuração de um serviço — por exemplo, mudar a porta interna do MariaDB de 3306 para outra. O projeto precisa:
+
+1. Editar o arquivo relevante (ex: `srcs/docker-compose.yml` ou `srcs/requirements/mariadb/conf/50-server.cnf`)
+2. Rebuildar e reiniciar:
+   ```bash
+   make re
+   ```
+3. Demonstrar que o serviço continua funcional.
+
+Exemplo típico — mudar a porta interna do MariaDB para 3307:
+
+No `docker-compose.yml`, alterar o `environment` ou `MYSQL_TCP_PORT`, e no `50-server.cnf`:
+```ini
+port = 3307
+```
+
+No entrypoint do WordPress, o `MYSQL_HOST` permanece `mariadb` (Docker DNS) mas a porta deve ser atualizada. Após `make re`, verificar:
+```bash
+docker ps
+curl -k https://rsaueia-.42.fr
+```
+
+> **Dica para a defesa:** qualquer serviço e qualquer porta disponível no sistema é válido. A troca mais simples é alterar a porta interna do MariaDB no arquivo de configuração — não afeta a porta exposta ao host (MariaDB não expõe porta ao host).
+
 ---
 
-## 9. Checklist rápida pré-avaliação
+## 10. Checklist rápida pré-avaliação
 
 ```bash
 # 1. Três containers rodando

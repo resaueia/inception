@@ -96,9 +96,9 @@ MYSQL_USER=wp_user
 MYSQL_HOST=mariadb
 WP_TITLE=Inception
 WP_ADMIN_USER=rsaueia_root
-WP_ADMIN_EMAIL=admin@rsaueia-.42.fr
+WP_ADMIN_EMAIL=admin@inception.42.fr
 WP_USER=rsaueia_editor
-WP_USER_EMAIL=editor@rsaueia-.42.fr
+WP_USER_EMAIL=editor@inception.42.fr
 ```
 
 4. Configure the domain in `/etc/hosts` (local VM only):

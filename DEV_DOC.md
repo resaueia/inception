@@ -11,7 +11,7 @@
 | Tool | Version used | Install |
 |---|---|---|
 | VirtualBox | 7.1 | https://www.virtualbox.org |
-| Debian VM | 13 (trixie) | 4 GB RAM, 2 CPUs, 30 GB disk |
+| Debian VM | 12 (bookworm) | 4 GB RAM, 2 CPUs, 30 GB disk |
 | Docker Engine | 29.4.1 | see below |
 | Docker Compose | v2 (plugin) | bundled with Docker Engine |
 | make | any | `sudo apt-get install make` |
@@ -71,9 +71,9 @@ MYSQL_USER=wp_user
 MYSQL_HOST=mariadb
 WP_TITLE=Inception
 WP_ADMIN_USER=rsaueia_root
-WP_ADMIN_EMAIL=admin@rsaueia-.42.fr
+WP_ADMIN_EMAIL=admin@inception.42.fr
 WP_USER=rsaueia_editor
-WP_USER_EMAIL=editor@rsaueia-.42.fr
+WP_USER_EMAIL=editor@inception.42.fr
 EOF
 ```
 
